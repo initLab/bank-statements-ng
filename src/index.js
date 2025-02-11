@@ -19,6 +19,8 @@ const UnicreditField86Codes = {
     '33': 'senderName',
 };
 
+const UnicreditField86ArrayFields = ['reason', 'senderName'];
+
 function parseUnicreditField86(detail) {
     const type = detail.substring(0, 3);
     const separator = detail.charAt(3);
@@ -40,7 +42,7 @@ function parseUnicreditField86(detail) {
             continue;
         }
 
-        if (['reason', 'senderName'].includes(key)) {
+        if (UnicreditField86ArrayFields.includes(key)) {
             result[key] = [
                 ...(result[key] || []),
                 value,
