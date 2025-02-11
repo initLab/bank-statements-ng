@@ -58,7 +58,7 @@ function parseUnicreditField86(detail) {
 
 console.log(JSON.stringify(argv.slice(2).flatMap(arg => parser.parse({
     type: 'mt940',
-    data: readFileSync(arg, 'utf8'),
+    data: readFileSync(arg, 'utf8').replace(/^\uFEFF/, ''),
     validate: true,
 })).map(statement => ({
     ...statement,
