@@ -10,6 +10,7 @@
   },
   "private": true,
   "dependencies": {
-    "@centrapay/swift-parser": "^1.0.1"
+    "@centrapay/swift-parser": "^1.0.1",
+    "jsdom": "^26.0.0"
   }
 }
