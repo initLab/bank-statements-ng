@@ -17,6 +17,32 @@ const accountMovement = accountMovements[0];
 const iban = accountMovement.querySelector('IBAN').textContent;
 const currency = accountMovement.querySelector('CCY').textContent;
 
+function sum(arr) {
+    return arr.reduce((prev, curr) => prev + curr, 0);
+}
+
+function splitStringToParts(str, parts = []) {
+    const totalPartsLength = sum(parts);
+
+    if (str.length > totalPartsLength) {
+        throw new Error(`String too long, max expected length=${totalPartsLength}, got length=${str.length}`);
+    }
+
+    let offset = 0;
+    let result = [];
+
+    for (let i = 0; i < parts.length; i++) {
+        if (str.length - offset <= 0) {
+            break;
+        }
+
+        result[i] = str.substring(offset, offset + parts[i]);
+        offset += parts[i];
+    }
+
+    return result;
+}
+
 function zeroPad(str, length = 2) {
     return str.toString().padStart(length, '0');
 }
@@ -51,160 +77,148 @@ function formatAmount(amount) {
     return amount.toFixed(2).replace('.', ',');
 }
 
-function out(txt) {
-    result += txt + '\n';
-}
+function parse(accountMovements) {
+    let result = '';
 
-let result = '';
-let balance = 0;
-let lastDate = '';
-let index = 0;
-
-const accountMovementsLength = accountMovements.length;
-
-for (const accountMovement of accountMovements) {
-    const movementType = getQueryText(accountMovement, 'MovementType');
-
-    if (!['Credit', 'Debit'].includes(movementType)) {
-        throw new Error('WTF Unsupported/missing movement type: ' + movementType);
+    function out(txt) {
+        result += txt + '\n';
     }
 
-    const amount = parseFloat(getQueryText(accountMovement, 'Amount'));
-    const gppReference = getQueryText(accountMovement, 'GppReference', true);
-    const movementFunctionalType = getQueryText(accountMovement, 'MovementFunctionalType');
-    const hasGppReference = gppReference !== null;
-    const reason = getQueryText(accountMovement, 'Reason', true);
-    const description = hasGppReference ? movementFunctionalType : (reason ?? movementFunctionalType);
-    const oppositeAccount = getQueryText(accountMovement, 'OppositeSideAccount');
-    const oppositeName = getQueryText(accountMovement, 'OppositeSideName');
-    const narrative = getQueryText(accountMovement, 'Narrative', true);
-    const narrative2 = getQueryText(accountMovement, 'NarrativeI02', true);
-    const details = hasGppReference ? `${narrative ?? ''}${reason ?? ''}` : (narrative2 ?? narrative ?? '');
-    const documentReference = getQueryText(accountMovement, 'DocumentReference');
-    const reference = documentReference.substring(14, 30).toUpperCase();
-    const paymentDate = new Date(getQueryText(accountMovement, 'PaymentDate'));
-    const valueDate = new Date(getQueryText(accountMovement, 'ValueDate'));
+    let balance = 0;
+    let lastDate = '';
+    let index = 0;
 
-    const paymentTxt = formatDate(paymentDate);
-    const valueTxt = formatDate(valueDate);
+    const accountMovementsLength = accountMovements.length;
 
-    const oppositeBicKey = movementType === 'Credit' ? 'PayerBIC' : 'PayeeBIC';
-    const hasDocument = getQueryText(accountMovement, 'HasDocument') === 'true';
-    const movementDocument = accountMovement.querySelector('MovementDocument[type="d2p1:AccountMovementDocumentI02"]');
-    const oppositeBic = hasDocument ? getQueryText(movementDocument, oppositeBicKey) : null;
+    for (const accountMovement of accountMovements) {
+        const movementType = getQueryText(accountMovement, 'MovementType');
 
-    // if (paymentTxt !== valueTxt) {
-    //     console.log(reference, currency, movementType, amount, oppositeAccount, oppositeName, description, details);
-    //     console.log('payment', paymentDate);
-    //     console.log('value  ', valueDate);
-    // }
+        if (!['Credit', 'Debit'].includes(movementType)) {
+            throw new Error('WTF Unsupported/missing movement type: ' + movementType);
+        }
 
-    function getBalance() {
-        // noinspection JSReferencingMutableVariableFromClosure
-        return `C${paymentTxt}${currency}${formatAmount(balance)}`;
-    }
+        const amount = parseFloat(getQueryText(accountMovement, 'Amount'));
+        const gppReference = getQueryText(accountMovement, 'GppReference', true);
+        const movementFunctionalType = getQueryText(accountMovement, 'MovementFunctionalType');
+        const hasGppReference = gppReference !== null;
+        const reason = getQueryText(accountMovement, 'Reason', true);
+        const description = hasGppReference ? movementFunctionalType : (reason ?? movementFunctionalType);
+        const oppositeAccount = getQueryText(accountMovement, 'OppositeSideAccount');
+        const oppositeName = getQueryText(accountMovement, 'OppositeSideName');
+        const narrative = getQueryText(accountMovement, 'Narrative', true);
+        const narrative2 = getQueryText(accountMovement, 'NarrativeI02', true);
+        const details = hasGppReference ? `${narrative ?? ''}${reason ?? ''}` : (narrative2 ?? narrative ?? '');
+        const documentReference = getQueryText(accountMovement, 'DocumentReference');
+        const reference = documentReference.substring(14, 30).toUpperCase();
+        const paymentDate = new Date(getQueryText(accountMovement, 'PaymentDate'));
+        const valueDate = new Date(getQueryText(accountMovement, 'ValueDate'));
 
-    function printHeader() {
-        out(`:20:${paymentTxt}`);
-        out(`:25:${iban}`);
-        // skipped tag 28
-        out(`:60F:${getBalance()}`);
-    }
+        const paymentTxt = formatDate(paymentDate);
+        const valueTxt = formatDate(valueDate);
 
-    function printFooter() {
-        out(`:62F:${getBalance()}`);
-        out(`:64:${getBalance()}`);
-        out('-');
-    }
+        const oppositeBicKey = movementType === 'Credit' ? 'PayerBIC' : 'PayeeBIC';
+        const hasDocument = getQueryText(accountMovement, 'HasDocument') === 'true';
+        const movementDocument = accountMovement.querySelector('MovementDocument[type="d2p1:AccountMovementDocumentI02"]');
+        const oppositeBic = hasDocument ? getQueryText(movementDocument, oppositeBicKey) : null;
 
-    const dateChanged = lastDate !== '' && lastDate !== paymentTxt;
+        // if (paymentTxt !== valueTxt) {
+        //     console.log(reference, currency, movementType, amount, oppositeAccount, oppositeName, description, details);
+        //     console.log('payment', paymentDate);
+        //     console.log('value  ', valueDate);
+        // }
 
-    if (lastDate === '') {
-        printHeader();
-    }
+        function getBalance() {
+            // noinspection JSReferencingMutableVariableFromClosure
+            return `C${paymentTxt}${currency}${formatAmount(balance)}`;
+        }
 
-    lastDate = paymentTxt;
+        function printHeader() {
+            out(`:20:${paymentTxt}`);
+            out(`:25:${iban}`);
+            // skipped tag 28
+            out(`:60F:${getBalance()}`);
+        }
 
-    if (dateChanged) {
-        printFooter();
-        printHeader();
-    }
+        function printFooter() {
+            out(`:62F:${getBalance()}`);
+            out(`:64:${getBalance()}`);
+            out('-');
+        }
 
-    const transactionType = movementType.substring(0, 1);
-    const swiftType = 'NMSC';
-    const ref = 'NONREF';
-    out(`:61:${paymentTxt}${valueTxt.substring(2)}${transactionType}${formatAmount(amount)}${swiftType}${ref}//${reference}`);
+        const dateChanged = lastDate !== '' && lastDate !== paymentTxt;
 
-    const sep = '+';
-    let fields = '';
+        if (lastDate === '') {
+            printHeader();
+        }
 
-    if (description) {
-        fields += `${sep}00${description}`;
-    }
+        lastDate = paymentTxt;
 
-    if (details) {
-        let code = 21;
-        fields += `${sep}${(code++).toString()}${details.substring(0, 65)}`;
+        if (dateChanged) {
+            printFooter();
+            printHeader();
+        }
 
-        let moreDetails = details.substring(65);
+        const transactionType = movementType.substring(0, 1);
+        const swiftType = 'NMSC';
+        const ref = 'NONREF';
+        out(`:61:${paymentTxt}${valueTxt.substring(2)}${transactionType}${formatAmount(amount)}${swiftType}${ref}//${reference}`);
 
-        if (moreDetails) {
-            fields += `${sep}${(code++).toString()}${moreDetails.substring(0, 65)}`;
-            moreDetails = moreDetails.substring(65);
+        const sep = '+';
+        let fields = '';
 
-            while (moreDetails) {
-                fields += `${sep}${(code++).toString()}${moreDetails.substring(0, 27)}`;
-                moreDetails = moreDetails.substring(27);
+        if (description) {
+            fields += `${sep}00${description}`;
+        }
 
-                if (code >= 28 && moreDetails) {
-                    throw new Error('WTF description too long');
-                }
+        if (details) {
+            const parts = splitStringToParts(details, [65, 65, 27, 27, 27, 27, 27]);
+
+            for (let i = 0; i < parts.length; i++) {
+                const code = (21 + i).toString();
+                fields += `${sep}${code}${parts[i]}`;
             }
         }
-    }
 
-    if (oppositeBic) {
-        fields += `${sep}30${oppositeBic}`;
-    }
+        if (oppositeBic) {
+            fields += `${sep}30${oppositeBic}`;
+        }
 
-    if (oppositeAccount) {
-        fields += `${sep}31${oppositeAccount}`;
-    }
+        if (oppositeAccount) {
+            fields += `${sep}31${oppositeAccount}`;
+        }
 
-    if (oppositeName) {
-        fields += `${sep}32${oppositeName.substring(0, 27)}`;
+        if (oppositeName) {
+            const parts = splitStringToParts(oppositeName, [27, 27]);
 
-        const moreName = oppositeName.substring(27);
-
-        if (moreName) {
-            fields += `${sep}33${moreName.substring(0, 27)}`;
-
-            if (moreName.substring(27).length > 0) {
-                throw new Error('WTF name too long');
+            for (let i = 0; i < parts.length; i++) {
+                const code = (32 + i).toString();
+                fields += `${sep}${code}${parts[i]}`;
             }
         }
+
+        const bankTransactionType = 'XXX'; // TODO
+
+        if (fields.length > 0) {
+            out(`:86:${bankTransactionType}${fields}`);
+        }
+
+        if (movementType === 'Credit') {
+            balance += amount;
+        }
+        if (movementType === 'Debit') {
+            balance -= amount;
+        }
+
+        const isLast = index + 1 === accountMovementsLength;
+
+        if (isLast) {
+            printFooter();
+        }
+
+        index++;
     }
 
-    const bankTransactionType = 'XXX'; // TODO
-
-    if (fields.length > 0) {
-        out(`:86:${bankTransactionType}${fields}`);
-    }
-
-    if (movementType === 'Credit') {
-        balance += amount;
-    }
-    if (movementType === 'Debit') {
-        balance -= amount;
-    }
-
-    const isLast = index + 1 === accountMovementsLength;
-
-    if (isLast) {
-        printFooter();
-    }
-
-    index++;
+    return result;
 }
 
-output.textContent = result;
+output.textContent = parse(accountMovements);
