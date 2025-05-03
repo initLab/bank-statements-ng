@@ -17,6 +17,19 @@ const accountMovement = accountMovements[0];
 const iban = accountMovement.querySelector('IBAN').textContent;
 const currency = accountMovement.querySelector('CCY').textContent;
 
+// noinspection JSNonASCIINames
+const bankTransactionTypes = {
+    'Операция с карта': 'AC1',
+    'Дължима периодична такса': 'GCH',
+    'ТАКСА по пакетна програма': 'GPC',
+    'BLINK Платежно нареждане извън банката': 'TB1',
+    'BLINK Получен междубанков превод': 'TB2',
+    'Получен междубанков превод': 'TBB',
+    'Издаден вътр.банков превод': 'TF1',
+    'Получен вътр.банков превод': 'TF2',
+    'Платежно нареждане извън банката': 'THO',
+};
+
 function sum(arr) {
     return arr.reduce((prev, curr) => prev + curr, 0);
 }
@@ -214,7 +227,7 @@ function parse(accountMovements) {
             }
         }
 
-        const bankTransactionType = 'XXX'; // TODO
+        const bankTransactionType = bankTransactionTypes?.[description] ?? 'XXX';
 
         if (fields.length > 0) {
             out(`:86:${bankTransactionType}${fields}`);
