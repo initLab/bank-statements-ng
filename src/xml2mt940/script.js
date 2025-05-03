@@ -43,6 +43,23 @@ function splitStringToParts(str, parts = []) {
     return result;
 }
 
+function findSep(str, defaultSep = '+') {
+    const seps = ' !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
+
+    let sep = defaultSep;
+    let offset = 0;
+
+    while (str.indexOf(sep) > -1) {
+        if (offset >= seps.length) {
+            throw new Error(`Unable to find a suitable separator for string: ${str}`);
+        }
+
+        sep = seps[offset++];
+    }
+
+    return sep;
+}
+
 function zeroPad(str, length = 2) {
     return str.toString().padStart(length, '0');
 }
@@ -163,7 +180,8 @@ function parse(accountMovements) {
         const ref = 'NONREF';
         out(`:61:${paymentTxt}${valueTxt.substring(2)}${transactionType}${formatAmount(amount)}${swiftType}${ref}//${reference}`);
 
-        const sep = '+';
+        const field86 = `${description ?? ''}${details ?? ''}${oppositeBic ?? ''}${oppositeAccount ?? ''}${oppositeName ?? ''}`;
+        const sep = findSep(field86);
         let fields = '';
 
         if (description) {
