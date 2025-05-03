@@ -165,7 +165,7 @@ function parse(accountMovements) {
         function printHeader() {
             out(`:20:${paymentTxt}`);
             out(`:25:${iban}`);
-            // skipped tag 28
+            out(`:28:${paymentTxt}/1`);
             out(`:60F:${getBalance()}`);
         }
 
