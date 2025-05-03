@@ -165,7 +165,7 @@ function parse(accountMovements) {
         function printHeader() {
             out(`:20:${paymentTxt}`);
             out(`:25:${iban}`);
-            out(`:28:${paymentTxt}/1`);
+            out(`:28:${paymentTxt.substring(2)}/1`);
             out(`:60F:${getBalance()}`);
         }
 
