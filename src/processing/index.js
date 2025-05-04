@@ -35,9 +35,9 @@ export async function processFiles() {
             }
         }
 
+        process.stdout.write('\n');
         await deleteFile(key);
     }
 
-    process.stdout.write('\n');
     console.log('All files processed.');
 }
