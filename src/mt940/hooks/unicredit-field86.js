@@ -1,3 +1,5 @@
+import { isUnicredit } from './_common.js';
+
 const UnicreditField86Codes = {
     '00': 'bankTransactionTypeDescription',
     // '10': 'batchNumber',
@@ -17,14 +19,8 @@ const UnicreditField86Codes = {
 
 const UnicreditField86ArrayFields = ['paymentReason', 'counterpartyName'];
 
-function isSupported(statement) {
-    const iban = statement.accountIdentification;
-
-    return iban.startsWith('BG') && iban.substring(4, 8) === 'UNCR';
-}
-
 export function process(statement) {
-    if (!isSupported(statement)) {
+    if (!isUnicredit(statement)) {
         return;
     }
 

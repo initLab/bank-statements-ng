@@ -5,19 +5,17 @@ import { ModelNotFoundError } from 'sutando';
  * @returns {Promise<boolean>} if a new record was created
  */
 export async function storeTransaction(transaction) {
-    const isFee = transaction.bankTransactionTypeDescription.startsWith('Такса за ');
-    const amount = transaction.amount.toFixed(2);
     const bankTransactionType = transaction.bankTransactionType === 'XXX' ? null : transaction.bankTransactionType;
 
     const attributes = {
         bankReference: transaction.bankReference,
-        isFee,
+        isFee: transaction.bankTransactionTypeDescription.startsWith('Такса за '),
     };
 
     const values = {
         valueDate: transaction.date,
         entryDate: transaction.entryDate,
-        amount,
+        amount: transaction.amount.toFixed(2),
         isReversal: transaction.isReversal,
         bankTransactionType,
         bankTransactionTypeDescription: transaction.bankTransactionTypeDescription,
@@ -25,6 +23,17 @@ export async function storeTransaction(transaction) {
         counterpartyBic: transaction.counterpartyBic,
         counterpartyIban: transaction.counterpartyIban,
         counterpartyName: transaction.counterpartyName,
+        cardOperationType: transaction.cardOperationType,
+        originalAmount: transaction.originalAmount,
+        originalCurrency: transaction.originalCurrency,
+        merchantName: transaction.merchantName?.trim(),
+        merchantLocation: transaction.merchantLocation?.trim(),
+        authCode: transaction.authCode,
+        pan: transaction.pan,
+        tid: transaction.tid,
+        tt: transaction.tt,
+        cardUnknownNumber: transaction.cardUnknownNumber,
+        cardInfo: transaction.cardInfo,
     };
 
     try {
