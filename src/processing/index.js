@@ -1,6 +1,7 @@
-import { isFileBeingProcessed, listFiles, readFile } from '../s3/index.js';
+import { deleteFile, isFileBeingProcessed, listFiles, readFile, tagFileAsProcessing } from '../s3/index.js';
 import { getEmailAttachments } from '../email/index.js';
 import { parseAndValidateStatements } from '../mt940/parser.js';
+import { storeTransaction } from '../database/api.js';
 
 export async function processFiles() {
     const files = await listFiles();
@@ -19,7 +20,7 @@ export async function processFiles() {
             continue;
         }
 
-        // await tagFileAsProcessing(key);
+        await tagFileAsProcessing(key);
         const contents = await readFile(key);
         const attachments = await getEmailAttachments(contents, 'text/plain');
 
@@ -27,14 +28,16 @@ export async function processFiles() {
             const statements = parseAndValidateStatements(attachment.content.toString());
 
             for (const statement of statements) {
-                // TODO
-                console.log(statement);
-                process.exit();
+                for (const transaction of statement.transactions) {
+                    const created = await storeTransaction(transaction);
+                    process.stdout.write(created ? '+' : '~');
+                }
             }
         }
 
-        // await deleteFile(key);
+        await deleteFile(key);
     }
 
+    process.stdout.write('\n');
     console.log('All files processed.');
 }
