@@ -3,6 +3,8 @@ import { attachmentContentToString, getEmailAttachments } from '../email/index.j
 import { parseAndValidateStatements } from '../mt940/parser.js';
 import { storeTransaction } from '../database/api.js';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export async function processFiles() {
     const files = await listFiles();
 
@@ -13,14 +15,17 @@ export async function processFiles() {
             continue;
         }
 
-        const alreadyProcessing = await isFileBeingProcessed(key);
+        if (isProd) {
+            const alreadyProcessing = await isFileBeingProcessed(key);
 
-        if (alreadyProcessing) {
-            console.log(`Skipping file (already tagged): ${key}`);
-            continue;
+            if (alreadyProcessing) {
+                console.log(`Skipping file (already tagged): ${key}`);
+                continue;
+            }
+
+            await tagFileAsProcessing(key);
         }
 
-        await tagFileAsProcessing(key);
         const contents = await readFile(key);
         const attachments = await getEmailAttachments(contents, 'text/plain');
 
@@ -37,7 +42,10 @@ export async function processFiles() {
         }
 
         process.stdout.write('\n');
-        await deleteFile(key);
+
+        if (isProd) {
+            await deleteFile(key);
+        }
     }
 
     console.log('All files processed.');
