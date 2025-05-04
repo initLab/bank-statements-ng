@@ -123,6 +123,23 @@ function parse(accountMovements) {
     let lastDate = '';
     let index = 0;
 
+    function getBalance(date) {
+        return `C${date}${currency}${formatAmount(balance.toFixed(2))}`;
+    }
+
+    function printHeader(statementDateTxt, statementDate, balanceDateTxt) {
+        out(`:20:${statementDateTxt}`);
+        out(`:25:${iban}`);
+        out(`:28:${zeroPad(statementDate.getMonth() + 1)}/${zeroPad(statementDate.getDate())}`);
+        out(`:60F:${getBalance(balanceDateTxt)}`);
+    }
+
+    function printFooter(balanceDateTxt) {
+        out(`:62F:${getBalance(balanceDateTxt)}`);
+        out(`:64:${getBalance(balanceDateTxt)}`);
+        out('-');
+    }
+
     const accountMovementsLength = accountMovements.length;
 
     for (const accountMovement of accountMovements) {
@@ -156,34 +173,21 @@ function parse(accountMovements) {
         const movementDocument = querySelectorDirectChild(accountMovement, 'MovementDocument[type="d2p1:AccountMovementDocumentI02"]');
         const oppositeBic = hasDocument ? getQueryText(movementDocument, oppositeBicKey) : null;
 
-        function getBalance() {
-            return `C${paymentTxt}${currency}${formatAmount(balance.toFixed(2))}`;
+        if (index === 0) {
+            printHeader(paymentTxt, paymentDate, paymentTxt);
+            lastDate = paymentTxt;
         }
 
-        function printHeader() {
-            out(`:20:${paymentTxt}`);
-            out(`:25:${iban}`);
-            out(`:28:${zeroPad(paymentDate.getMonth() + 1)}/${zeroPad(paymentDate.getDate())}`);
-            out(`:60F:${getBalance()}`);
-        }
+        const dateChanged = lastDate !== paymentTxt;
 
-        function printFooter() {
-            out(`:62F:${getBalance()}`);
-            out(`:64:${getBalance()}`);
-            out('-');
-        }
-
-        const dateChanged = lastDate !== '' && lastDate !== paymentTxt;
-
-        if (lastDate === '') {
-            printHeader();
+        if (dateChanged) {
+            printFooter(lastDate);
         }
 
         lastDate = paymentTxt;
 
         if (dateChanged) {
-            printFooter();
-            printHeader();
+            printHeader(paymentTxt, paymentDate, paymentTxt);
         }
 
         const transactionType = movementType.substring(0, 1);
@@ -243,7 +247,7 @@ function parse(accountMovements) {
         const isLast = index + 1 === accountMovementsLength;
 
         if (isLast) {
-            printFooter();
+            printFooter(paymentTxt);
         }
 
         index++;
