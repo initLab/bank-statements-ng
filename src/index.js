@@ -1,26 +1,43 @@
-import { argv } from 'node:process';
-import { readFileWithoutBom } from './util.js';
+import 'dotenv/config';
+import { isFileBeingProcessed, listFiles, readFile } from './s3/index.js';
+import { getEmailAttachments } from './email/index.js';
 import { parseAndValidateStatements } from './mt940/parser.js';
-import { mapStatement as mapMt940Statement } from './mt940/mapping.js';
 
-export async function parseStatementsFiles(paths) {
-    const result = [];
+async function processFiles() {
+    const files = await listFiles();
 
-    for (const path of paths) {
-        const contents = await readFileWithoutBom(path);
+    for (const file of files) {
+        const key = file.Key;
 
-        if (path.toLowerCase().endsWith('.txt')) {
-            const statements = parseAndValidateStatements(contents);
+        if (key.endsWith('/')) {
+            continue;
+        }
+
+        const alreadyProcessing = await isFileBeingProcessed(key);
+
+        if (alreadyProcessing) {
+            console.log(`Skipping file (already tagged): ${key}`);
+            continue;
+        }
+
+        // await tagFileAsProcessing(key);
+        const contents = await readFile(key);
+        const attachments = await getEmailAttachments(contents, 'text/plain');
+
+        for (const attachment of attachments) {
+            const statements = parseAndValidateStatements(attachment.content.toString());
 
             for (const statement of statements) {
-                result.push(mapMt940Statement(statement));
+                // TODO
+                console.log(statement);
+                process.exit();
             }
         }
+
+        // await deleteFile(key);
     }
 
-    return result;
+    console.log('All files processed.');
 }
 
-const parsed = await parseStatementsFiles(argv.slice(2));
-const json = JSON.stringify(parsed, null, 4);
-console.log(json);
+await processFiles();

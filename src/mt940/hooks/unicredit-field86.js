@@ -9,19 +9,41 @@ const UnicreditField86Codes = {
     '25': 'reason',
     '26': 'reason',
     '27': 'reason',
-    '30': 'senderBic',
-    '31': 'senderIban',
-    '32': 'senderName',
-    '33': 'senderName',
+    '30': 'counterpartyBic',
+    '31': 'counterpartyIban',
+    '32': 'counterpartyName',
+    '33': 'counterpartyName',
 };
 
-const UnicreditField86ArrayFields = ['reason', 'senderName'];
+const UnicreditField86ArrayFields = ['reason', 'counterpartyName'];
 
-export function parseUnicreditField86(detail) {
-    const type = detail.substring(0, 3);
+function isSupported(statement) {
+    const iban = statement.accountIdentification;
+
+    return iban.startsWith('BG') && iban.substring(4, 8) === 'UNCR';
+}
+
+export function process(statement) {
+    if (!isSupported(statement)) {
+        return;
+    }
+
+    for (const transaction of statement.transactions) {
+        const field86 = transaction.detailSegments?.[0];
+
+        if (!field86) {
+            continue;
+        }
+
+        Object.assign(transaction, parseUnicreditField86(field86));
+    }
+}
+
+function parseUnicreditField86(detail) {
+    const bankTransactionType = detail.substring(0, 3);
     const separator = detail.charAt(3);
     const result = {
-        type,
+        bankTransactionType,
     };
 
     for (const field of detail.substring(4).split(separator)) {
