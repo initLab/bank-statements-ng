@@ -34,6 +34,9 @@ export async function storeTransaction(transaction) {
         tt: transaction.tt,
         cardUnknownNumber: transaction.cardUnknownNumber,
         cardInfo: transaction.cardInfo,
+        revolutCounterpartyName: transaction.revolutCounterpartyName,
+        revolutPaymentType: transaction.revolutPaymentType,
+        revolutPaymentReason: transaction.revolutPaymentReason,
     };
 
     try {
