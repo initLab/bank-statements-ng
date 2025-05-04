@@ -165,7 +165,7 @@ function parse(accountMovements) {
         function printHeader() {
             out(`:20:${paymentTxt}`);
             out(`:25:${iban}`);
-            out(`:28:${paymentDate.getFullYear()}/${paymentDate.getMonth() + 1}/${paymentDate.getDate()}`);
+            out(`:28:${paymentDate.getFullYear()}/${zeroPad(paymentDate.getMonth() + 1)}/${zeroPad(paymentDate.getDate())}`);
             out(`:60F:${getBalance()}`);
         }
 
