@@ -119,24 +119,24 @@ function parse(accountMovements) {
         result += txt + '\n';
     }
 
+    let previousDate = null;
     let balance = 0;
-    let lastDate = '';
     let index = 0;
 
     function getBalance(date) {
-        return `C${date}${currency}${formatAmount(balance.toFixed(2))}`;
+        return `C${formatDate(date)}${currency}${formatAmount(balance.toFixed(2))}`;
     }
 
-    function printHeader(statementDateTxt, statementDate, balanceDateTxt) {
-        out(`:20:${statementDateTxt}`);
+    function printHeader(statementDate, balanceDate = statementDate) {
+        out(`:20:${formatDate(statementDate)}`);
         out(`:25:${iban}`);
         out(`:28:${zeroPad(statementDate.getMonth() + 1)}/${zeroPad(statementDate.getDate())}`);
-        out(`:60F:${getBalance(balanceDateTxt)}`);
+        out(`:60F:${getBalance(balanceDate)}`);
     }
 
-    function printFooter(balanceDateTxt) {
-        out(`:62F:${getBalance(balanceDateTxt)}`);
-        out(`:64:${getBalance(balanceDateTxt)}`);
+    function printFooter(balanceDate) {
+        out(`:62F:${getBalance(balanceDate)}`);
+        out(`:64:${getBalance(balanceDate)}`);
         out('-');
     }
 
@@ -165,34 +165,31 @@ function parse(accountMovements) {
         const paymentDate = new Date(getQueryText(accountMovement, 'PaymentDate'));
         const valueDate = new Date(getQueryText(accountMovement, 'ValueDate'));
 
-        const paymentTxt = formatDate(paymentDate);
-        const valueTxt = formatDate(valueDate);
-
         const oppositeBicKey = movementType === 'Credit' ? 'PayerBIC' : 'PayeeBIC';
         const hasDocument = getQueryText(accountMovement, 'HasDocument') === 'true';
         const movementDocument = querySelectorDirectChild(accountMovement, 'MovementDocument[type="d2p1:AccountMovementDocumentI02"]');
         const oppositeBic = hasDocument ? getQueryText(movementDocument, oppositeBicKey) : null;
 
         if (index === 0) {
-            printHeader(paymentTxt, paymentDate, paymentTxt);
-            lastDate = paymentTxt;
+            printHeader(paymentDate);
+            previousDate = paymentDate;
         }
 
-        const dateChanged = lastDate !== paymentTxt;
+        const dateChanged = previousDate.getTime() !== paymentDate.getTime();
 
         if (dateChanged) {
-            printFooter(lastDate);
+            printFooter(previousDate);
         }
 
-        lastDate = paymentTxt;
+        previousDate = paymentDate;
 
         if (dateChanged) {
-            printHeader(paymentTxt, paymentDate, paymentTxt);
+            printHeader(paymentDate);
         }
 
         const transactionType = movementType.substring(0, 1);
         const swiftType = 'NMSC';
-        out(`:61:${paymentTxt}${valueTxt.substring(2)}${transactionType}${formatAmount(amount)}${swiftType}//${reference}`);
+        out(`:61:${formatDate(paymentDate)}${formatDate(valueDate).substring(2)}${transactionType}${formatAmount(amount)}${swiftType}//${reference}`);
 
         const field86 = `${description ?? ''}${details ?? ''}${oppositeBic ?? ''}${oppositeAccount ?? ''}${oppositeName ?? ''}`;
         const sep = findSep(field86);
@@ -246,7 +243,7 @@ function parse(accountMovements) {
         const isLast = index + 1 === accountMovementsLength;
 
         if (isLast) {
-            printFooter(paymentTxt);
+            printFooter(paymentDate);
         }
 
         index++;
