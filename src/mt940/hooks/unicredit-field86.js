@@ -1,21 +1,21 @@
 const UnicreditField86Codes = {
-    '00': 'description',
+    '00': 'bankTransactionTypeDescription',
     // '10': 'batchNumber',
     // '20': 'description2',
-    '21': 'reason',
-    '22': 'reason',
-    '23': 'reason',
-    '24': 'reason',
-    '25': 'reason',
-    '26': 'reason',
-    '27': 'reason',
+    '21': 'paymentReason',
+    '22': 'paymentReason',
+    '23': 'paymentReason',
+    '24': 'paymentReason',
+    '25': 'paymentReason',
+    '26': 'paymentReason',
+    '27': 'paymentReason',
     '30': 'counterpartyBic',
     '31': 'counterpartyIban',
     '32': 'counterpartyName',
     '33': 'counterpartyName',
 };
 
-const UnicreditField86ArrayFields = ['reason', 'counterpartyName'];
+const UnicreditField86ArrayFields = ['paymentReason', 'counterpartyName'];
 
 function isSupported(statement) {
     const iban = statement.accountIdentification;
