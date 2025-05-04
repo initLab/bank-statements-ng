@@ -1,18 +1,3 @@
-const parser = new DOMParser();
-
-const output = document.getElementById('output');
-const xmlResponse = await fetch('report.xml');
-
-if (!xmlResponse.ok) {
-    let errorMessage = `Fetch failed ${xmlResponse.statusText} (${xmlResponse.status})`;
-    output.textContent = errorMessage;
-    throw new Error(errorMessage);
-}
-
-const xmlText = await xmlResponse.text();
-const doc = parser.parseFromString(xmlText, 'text/xml');
-const accountMovements = [...doc.documentElement.children].toReversed();
-
 // noinspection JSNonASCIINames
 const bankTransactionTypes = {
     'Операция с карта': 'AC1',
@@ -107,7 +92,11 @@ function formatAmount(amount) {
     return amount.replace('.', ',');
 }
 
-function parse(accountMovements) {
+function parse(xmlText) {
+    const parser = new DOMParser();
+
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+    const accountMovements = [...doc.documentElement.children].toReversed();
     const accountMovement = accountMovements[0];
     const account = querySelectorDirectChild(accountMovement, 'Account');
     const iban = getQueryText(account, 'IBAN');
@@ -252,4 +241,14 @@ function parse(accountMovements) {
     return result;
 }
 
-output.textContent = parse(accountMovements);
+const output = document.getElementById('output');
+const xmlResponse = await fetch('report.xml');
+
+if (!xmlResponse.ok) {
+    let errorMessage = `Fetch failed ${xmlResponse.statusText} (${xmlResponse.status})`;
+    output.textContent = errorMessage;
+    throw new Error(errorMessage);
+}
+
+const xmlText = await xmlResponse.text();
+output.textContent = parse(xmlText);
