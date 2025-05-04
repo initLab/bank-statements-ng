@@ -10,3 +10,7 @@ export async function getEmailAttachments(contents, contentType = null) {
 
     return attachments;
 }
+
+export function attachmentContentToString(attachment) {
+    return attachment.content.toString().replace(/^\uFEFF/, '')
+}

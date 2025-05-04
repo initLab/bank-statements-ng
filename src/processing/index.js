@@ -1,5 +1,5 @@
 import { deleteFile, isFileBeingProcessed, listFiles, readFile, tagFileAsProcessing } from '../s3/index.js';
-import { getEmailAttachments } from '../email/index.js';
+import { attachmentContentToString, getEmailAttachments } from '../email/index.js';
 import { parseAndValidateStatements } from '../mt940/parser.js';
 import { storeTransaction } from '../database/api.js';
 
@@ -25,7 +25,8 @@ export async function processFiles() {
         const attachments = await getEmailAttachments(contents, 'text/plain');
 
         for (const attachment of attachments) {
-            const statements = parseAndValidateStatements(attachment.content.toString());
+            const attachmentContent = attachmentContentToString(attachment);
+            const statements = parseAndValidateStatements(attachmentContent);
 
             for (const statement of statements) {
                 for (const transaction of statement.transactions) {
