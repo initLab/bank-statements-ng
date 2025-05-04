@@ -192,8 +192,7 @@ function parse(accountMovements) {
 
         const transactionType = movementType.substring(0, 1);
         const swiftType = 'NMSC';
-        const ref = 'NONREF';
-        out(`:61:${paymentTxt}${valueTxt.substring(2)}${transactionType}${formatAmount(amount)}${swiftType}${ref}//${reference}`);
+        out(`:61:${paymentTxt}${valueTxt.substring(2)}${transactionType}${formatAmount(amount)}${swiftType}//${reference}`);
 
         const field86 = `${description ?? ''}${details ?? ''}${oppositeBic ?? ''}${oppositeAccount ?? ''}${oppositeName ?? ''}`;
         const sep = findSep(field86);
