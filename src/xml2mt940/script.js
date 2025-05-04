@@ -1,5 +1,6 @@
-const output = document.getElementById('output');
+const parser = new DOMParser();
 
+const output = document.getElementById('output');
 const xmlResponse = await fetch('report.xml');
 
 if (!xmlResponse.ok) {
@@ -9,13 +10,8 @@ if (!xmlResponse.ok) {
 }
 
 const xmlText = await xmlResponse.text();
-const parser = new DOMParser();
 const doc = parser.parseFromString(xmlText, 'text/xml');
-
 const accountMovements = [...doc.documentElement.children].toReversed();
-const accountMovement = accountMovements[0];
-const iban = accountMovement.querySelector('IBAN').textContent;
-const currency = accountMovement.querySelector('CCY').textContent;
 
 // noinspection JSNonASCIINames
 const bankTransactionTypes = {
@@ -85,12 +81,16 @@ function getElementText(el, returnNull = false) {
     return el.textContent;
 }
 
+function querySelectorDirectChild(parent, query) {
+    return parent.querySelector(`:scope > ${query}`);
+}
+
 function getQueryText(parent, query, returnNull = false) {
     if (parent === null) {
         throw new Error('getQueryText on null element');
     }
 
-    const el = parent.querySelector(query);
+    const el = querySelectorDirectChild(parent, query);
 
     if (!el) {
         return returnNull ? null : '';
@@ -104,10 +104,15 @@ function formatDate(dt) {
 }
 
 function formatAmount(amount) {
-    return amount.toFixed(2).replace('.', ',');
+    return amount.replace('.', ',');
 }
 
 function parse(accountMovements) {
+    const accountMovement = accountMovements[0];
+    const account = querySelectorDirectChild(accountMovement, 'Account');
+    const iban = getQueryText(account, 'IBAN');
+    const currency = getQueryText(account, 'CCY');
+
     let result = '';
 
     function out(txt) {
@@ -127,7 +132,7 @@ function parse(accountMovements) {
             throw new Error('WTF Unsupported/missing movement type: ' + movementType);
         }
 
-        const amount = parseFloat(getQueryText(accountMovement, 'Amount'));
+        const amount = getQueryText(accountMovement, 'Amount');
         const gppReference = getQueryText(accountMovement, 'GppReference', true);
         const movementFunctionalType = getQueryText(accountMovement, 'MovementFunctionalType');
         const hasGppReference = gppReference !== null;
@@ -148,24 +153,17 @@ function parse(accountMovements) {
 
         const oppositeBicKey = movementType === 'Credit' ? 'PayerBIC' : 'PayeeBIC';
         const hasDocument = getQueryText(accountMovement, 'HasDocument') === 'true';
-        const movementDocument = accountMovement.querySelector('MovementDocument[type="d2p1:AccountMovementDocumentI02"]');
+        const movementDocument = querySelectorDirectChild(accountMovement, 'MovementDocument[type="d2p1:AccountMovementDocumentI02"]');
         const oppositeBic = hasDocument ? getQueryText(movementDocument, oppositeBicKey) : null;
 
-        // if (paymentTxt !== valueTxt) {
-        //     console.log(reference, currency, movementType, amount, oppositeAccount, oppositeName, description, details);
-        //     console.log('payment', paymentDate);
-        //     console.log('value  ', valueDate);
-        // }
-
         function getBalance() {
-            // noinspection JSReferencingMutableVariableFromClosure
-            return `C${paymentTxt}${currency}${formatAmount(balance)}`;
+            return `C${paymentTxt}${currency}${formatAmount(balance.toFixed(2))}`;
         }
 
         function printHeader() {
             out(`:20:${paymentTxt}`);
             out(`:25:${iban}`);
-            out(`:28:${paymentDate.getFullYear()}/${zeroPad(paymentDate.getMonth() + 1)}/${zeroPad(paymentDate.getDate())}`);
+            out(`:28:${zeroPad(paymentDate.getMonth() + 1)}/${zeroPad(paymentDate.getDate())}`);
             out(`:60F:${getBalance()}`);
         }
 
@@ -233,11 +231,13 @@ function parse(accountMovements) {
             out(`:86:${bankTransactionType}${fields}`);
         }
 
+        const amountFloat = parseFloat(amount);
+
         if (movementType === 'Credit') {
-            balance += amount;
+            balance += amountFloat;
         }
         if (movementType === 'Debit') {
-            balance -= amount;
+            balance -= amountFloat;
         }
 
         const isLast = index + 1 === accountMovementsLength;
