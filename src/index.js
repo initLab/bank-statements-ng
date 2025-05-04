@@ -6,5 +6,3 @@ import * as dbConfig from '../sutando.config.js';
 sutando.addConnection(dbConfig);
 
 await processFiles();
-
-await sutando.destroyAll();
