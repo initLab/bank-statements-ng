@@ -1,8 +1,6 @@
 import 'dotenv/config';
-import { processFiles } from './processing/index.js';
-import { sutando } from 'sutando';
-import * as dbConfig from '../sutando.config.js';
+import { initializeDatabase } from './database/index.js';
+import { listenHttp } from './http/index.js';
 
-sutando.addConnection(dbConfig);
-
-await processFiles();
+initializeDatabase();
+listenHttp();
