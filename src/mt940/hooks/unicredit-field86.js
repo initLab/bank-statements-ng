@@ -56,6 +56,13 @@ function parseUnicreditField86(detail) {
             continue;
         }
 
+        // card operations are an exception
+        if (bankTransactionType === 'AC1' && key === 'bankTransactionTypeDescription') {
+            result[key] = 'Операция с карта';
+            result.paymentReason = value;
+            break;
+        }
+
         if (UnicreditField86ArrayFields.includes(key)) {
             result[key] = (result?.[key] || '').concat(value);
         }
