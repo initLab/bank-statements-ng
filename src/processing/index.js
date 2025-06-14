@@ -46,7 +46,7 @@ export async function processFiles() {
 }
 
 export async function processAttachmentContent(attachmentContent, progressFunction) {
-    const cleanContent = removeBom(attachmentContent.toString());
+    const cleanContent = removeBom(attachmentContent);
     const statements = parseAndValidateStatements(cleanContent);
 
     for (const statement of statements) {

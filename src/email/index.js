@@ -12,5 +12,5 @@ export async function getEmailAttachments(contents, contentType = null) {
 }
 
 export function removeBom(content) {
-    return content.replace(/^\uFEFF/, '');
+    return content.toString().replace(/^\uFEFF/, '');
 }
