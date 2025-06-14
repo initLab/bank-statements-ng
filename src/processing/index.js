@@ -1,5 +1,5 @@
 import { deleteFile, isFileBeingProcessed, listFiles, readFile, tagFileAsProcessing } from '../s3/index.js';
-import { attachmentContentToString, getEmailAttachments } from '../email/index.js';
+import { getEmailAttachments, removeBom } from '../email/index.js';
 import { parseAndValidateStatements } from '../mt940/parser.js';
 import { storeTransaction } from '../database/api.js';
 
@@ -28,17 +28,11 @@ export async function processFiles() {
 
         const contents = await readFile(key);
         const attachments = await getEmailAttachments(contents, 'text/plain');
+        const progressFunction = created =>
+            process.stdout.write(created ? '+' : '~');
 
         for (const attachment of attachments) {
-            const attachmentContent = attachmentContentToString(attachment);
-            const statements = parseAndValidateStatements(attachmentContent);
-
-            for (const statement of statements) {
-                for (const transaction of statement.transactions) {
-                    const created = await storeTransaction(transaction);
-                    process.stdout.write(created ? '+' : '~');
-                }
-            }
+            await processAttachmentContent(attachment.content, progressFunction);
         }
 
         process.stdout.write('\n');
@@ -49,4 +43,19 @@ export async function processFiles() {
     }
 
     console.log('All files processed.');
+}
+
+export async function processAttachmentContent(attachmentContent, progressFunction) {
+    const cleanContent = removeBom(attachmentContent.toString());
+    const statements = parseAndValidateStatements(cleanContent);
+
+    for (const statement of statements) {
+        for (const transaction of statement.transactions) {
+            const created = await storeTransaction(transaction);
+
+            if (progressFunction) {
+                progressFunction(created);
+            }
+        }
+    }
 }
