@@ -19,6 +19,8 @@ const UnicreditField86Codes = {
 
 const UnicreditField86ArrayFields = ['paymentReason', 'counterpartyName'];
 
+const UnicreditCardOperationDescription = 'Операция с карта';
+
 export function process(statement) {
     if (!isUnicredit(statement)) {
         return;
@@ -56,19 +58,23 @@ function parseUnicreditField86(detail) {
             continue;
         }
 
-        // card operations are an exception
-        if (bankTransactionType === 'AC1' && key === 'bankTransactionTypeDescription') {
-            result[key] = 'Операция с карта';
-            result.paymentReason = value;
-            break;
-        }
-
         if (UnicreditField86ArrayFields.includes(key)) {
             result[key] = (result?.[key] || '').concat(value);
         }
         else {
             result[key] = value;
         }
+    }
+
+    // card operations are an exception
+    if (
+        bankTransactionType === 'AC1' &&
+        Object.hasOwn(result, 'bankTransactionTypeDescription') &&
+        result.bankTransactionTypeDescription !== UnicreditCardOperationDescription &&
+        !Object.hasOwn(result, 'paymentReason')
+    ) {
+        result.paymentReason = result.bankTransactionTypeDescription;
+        result.bankTransactionTypeDescription = UnicreditCardOperationDescription;
     }
 
     return result;
